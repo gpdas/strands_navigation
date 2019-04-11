@@ -4,6 +4,7 @@ import rospy
 import sys
 import pymongo
 import json
+import copy
 
 import std_msgs.msg
 
@@ -77,9 +78,12 @@ class map_manager(object):
         
         # If we are in multirobot mode subscribe to topological presence topics
         if self.multirobot_mode:
+            self.presence_data_topic=[]
+            self.presence_data_node=[]
             rospy.loginfo("USING MULTI ROBOT MODE")
             self.presence_topics=rospy.get_param('topological_map_manager/presence_topics')
             self.subscribe_to_presence_topics()            
+
 
 
     def subscribe_to_presence_topics(self):
@@ -88,6 +92,8 @@ class map_manager(object):
         '''
         self.subscribers = []
         for j in self.presence_topics:
+            self.presence_data_topic.append(j)
+            self.presence_data_node.append('none')
             # Append to list to keep the instance alive and the subscriber active.
             self.subscribers.append(TopicSubscriberHelper(
                 topic=j,
@@ -99,8 +105,33 @@ class map_manager(object):
 
 
     def presenceCallback(self, msg, item):
-        print msg, item
-        
+        '''
+        callback for presence topics
+        '''
+        data_ind=self.presence_data_topic.index(item)
+        self.presence_data_node[data_ind]=msg.data
+        self.block_occupied_nodes()
+
+
+    def block_occupied_nodes(self):
+        '''
+            This function removes the edges going into occupied nodes from the map and publishes a new map without them
+        '''
+        tnodes = copy.deepcopy(self.nodes)
+        for i in tnodes.nodes:
+            to_pop=[]
+            for j in range(len(i.edges)):
+                if i.edges[j].node in self.presence_data_node:
+                    to_pop.append(j)
+            if to_pop:
+                to_pop.reverse()
+                for h in to_pop:
+                    i.edges.pop(h)
+
+        self.last_updated = rospy.Time.now()
+        self.map_pub.publish(tnodes)
+#        self.names = self.create_list_of_nodes()
+
 
     def updateCallback(self, msg) :
 #        if msg.data > self.last_updated :
@@ -673,6 +704,7 @@ class map_manager(object):
                      if j.node == nodea:
                          ba.append(j.edge_id)
          return ab, ba
+
 
     def get_edges_between_cb(self, req):
          return self.get_edges_between(req.nodea, req.nodeb)
