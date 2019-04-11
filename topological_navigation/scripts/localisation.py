@@ -254,7 +254,7 @@ class TopologicalNavLoc(object):
                 callback=self.Callback,
                 callback_args=j
             ))
-            # Calling instance of class to start subsribing thread.
+            # Calling instance of class to start subscribing thread.
             self.subscribers[-1]()
 
     """

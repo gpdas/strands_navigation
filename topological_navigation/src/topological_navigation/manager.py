@@ -11,7 +11,7 @@ from strands_navigation_msgs.msg import *
 from strands_navigation_msgs.srv import *
 from mongodb_store.message_store import MessageStoreProxy
 
-
+from topological_navigation.topic_subscriber import TopicSubscriberHelper
 
 def node_dist(node1,node2):
     dist = math.sqrt((node1.pose.position.x - node2.pose.position.x)**2 + (node1.pose.position.y - node2.pose.position.y)**2 )
@@ -33,6 +33,9 @@ class map_manager(object):
             self.nodes.pointset = name
             self.names=[]
             rospy.set_param('topological_map_name', self.nodes.pointset)
+
+        # Are we using multirobot mode?
+        self.multirobot_mode = rospy.get_param('topological_map_manager/multi_robot_mode', False)
 
 
         self.map_pub = rospy.Publisher('/topological_map', strands_navigation_msgs.msg.TopologicalMap, latch=True, queue_size=1)
@@ -71,6 +74,33 @@ class map_manager(object):
         self.add_edges_srv=rospy.Service('/topological_map_manager/add_edges_between_nodes', strands_navigation_msgs.srv.AddEdge, self.add_edge_cb)
         self.update_edge_srv=rospy.Service('/topological_map_manager/update_edge', strands_navigation_msgs.srv.UpdateEdge, self.update_edge_cb)
         self.remove_edge_srv=rospy.Service('/topological_map_manager/remove_edge', strands_navigation_msgs.srv.AddEdge, self.remove_edge_cb)
+        
+        # If we are in multirobot mode subscribe to topological presence topics
+        if self.multirobot_mode:
+            rospy.loginfo("USING MULTI ROBOT MODE")
+            self.presence_topics=rospy.get_param('topological_map_manager/presence_topics')
+            self.subscribe_to_presence_topics()            
+
+
+    def subscribe_to_presence_topics(self):
+        '''
+        helper function to subscribe to a list of topics by their name only
+        '''
+        self.subscribers = []
+        for j in self.presence_topics:
+            # Append to list to keep the instance alive and the subscriber active.
+            self.subscribers.append(TopicSubscriberHelper(
+                topic=j,
+                callback=self.presenceCallback,
+                callback_args=j
+            ))
+            # Calling instance of class to start subscribing thread.
+            self.subscribers[-1]()
+
+
+    def presenceCallback(self, msg, item):
+        print msg, item
+        
 
     def updateCallback(self, msg) :
 #        if msg.data > self.last_updated :
