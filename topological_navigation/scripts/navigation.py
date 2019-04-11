@@ -385,7 +385,6 @@ class TopologicalNavServer(object):
         
         Checks if an edge requires reconfiguration of the 
         """
-        
 #        print self.edge_groups
         
         edge_group='none'
@@ -403,14 +402,16 @@ class TopologicalNavServer(object):
         if edge_group is not self.current_edge_group: # and edge_group != 'none':
             print "RECONFIGURING EDGE: ", edge_id
             print "TO ", edge_group 
-            self.current_edge_group = edge_group
             try:
                 rospy.wait_for_service('reconf_at_edges', timeout=3)
                 reconf_at_edges = rospy.ServiceProxy('reconf_at_edges', ReconfAtEdges)
                 resp1 = reconf_at_edges(edge_id)
+                self.current_edge_group = edge_group
+
                 print resp1.success
             except rospy.ServiceException, e:
                 rospy.logerr("Service call failed: %s"%e)
+                self.current_edge_group = 'none'
         print "-------"
 
 
