@@ -41,6 +41,7 @@ class map_manager(object):
 
         self.map_pub = rospy.Publisher('/topological_map', strands_navigation_msgs.msg.TopologicalMap, latch=True, queue_size=1)
         self.last_updated = rospy.Time.now()
+        print "P1"
         self.map_pub.publish(self.nodes)
 
 
@@ -137,7 +138,8 @@ class map_manager(object):
                 for h in to_pop:
                     i.edges.pop(h)
 
-        self.last_updated = rospy.Time.now()
+        #self.last_updated = rospy.Time.now()
+        print "R1"
         self.av_map_pub.publish(tnodes)
 
         topic_str=''        
@@ -154,6 +156,7 @@ class map_manager(object):
 #        if msg.data > self.last_updated :
         self.nodes = self.loadMap(self.name)
         self.last_updated = rospy.Time.now()
+        print "P2"
         self.map_pub.publish(self.nodes)
         self.names = self.create_list_of_nodes()
 
@@ -378,6 +381,7 @@ class map_manager(object):
         print "Returning Map %s"%req.pointset
         #nodes.nodes.sort(key=lambda node: node.name)
         self.names = self.create_list_of_nodes()
+        print "P3"
         self.map_pub.publish(self.nodes)
         return self.nodes
 
