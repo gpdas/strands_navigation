@@ -4,6 +4,7 @@ import rospy
 import actionlib
 import sys
 import json
+import copy
 
 
 import calendar
@@ -78,7 +79,10 @@ class TopologicalNavServer(object):
 
         self.current_node = "Unknown"
         self.closest_node = "Unknown"
+        self.unavailable_nodes=[]
         self.actions_needed=[]
+
+        self.multirobot_mode = rospy.get_param('topological_map_manager/multi_robot_mode', False)
 
         move_base_actions = ['move_base', 'human_aware_navigation','han_adapt_speed','han_vc_corridor','han_vc_junction']
         self.move_base_actions = rospy.get_param('~move_base_actions', move_base_actions)     
@@ -103,7 +107,12 @@ class TopologicalNavServer(object):
         
         #Waiting for Topological Map        
         self._map_received=False
-        rospy.Subscriber('/topological_map', TopologicalMap, self.MapCallback)
+        if not self.multirobot_mode:
+            rospy.Subscriber('/topological_map', TopologicalMap, self.MapCallback)
+        else:
+            rospy.Subscriber('/available_topological_map', TopologicalMap, self.MapCallback)
+            rospy.Subscriber('/topological_map', TopologicalMap, self.FullMapCallback)
+            rospy.Subscriber('/unavailable_nodes', String, self.UnavNodesCB)
         rospy.loginfo("Waiting for Topological map ...")        
         while not self._map_received :
             rospy.sleep(rospy.Duration.from_sec(0.05))
@@ -146,6 +155,7 @@ class TopologicalNavServer(object):
 
         rospy.loginfo("All Done ...")
         rospy.spin()
+
 
     def init_reconfigure(self):
         self.move_base_planner = rospy.get_param('~move_base_planner', 'move_base/DWAPlannerROS')
@@ -228,13 +238,20 @@ class TopologicalNavServer(object):
         self._map_received=True
 
 
+    def FullMapCallback(self, msg):
+        self.fnodes = msg
 
-    """
-     Execute CallBack
-     
-     This Functions is called when the Action Server is called
-    """
+
+    def UnavNodesCB(self, msg):
+        self.unavailable_nodes=msg.data.split(', ')
+
+
     def executeCallback(self, goal):
+        """
+         Execute CallBack
+         
+         This Functions is called when the Action Server is called
+        """
         if self.monit_nav_cli :
             self.cancelled = False
             self.preempted = False
@@ -243,10 +260,31 @@ class TopologicalNavServer(object):
             self._feedback.route = 'Starting...'
             self._as.publish_feedback(self._feedback)
             rospy.loginfo('Navigating From %s to %s', self.closest_node, goal.target)
+            if self.multirobot_mode:
+                if goal.target in self.unavailable_nodes:
+                    unav_map = self.unblock_node(goal.target)           
             self.navigate(goal.target)
+            self.lnodes=unav_map
         else:
             rospy.loginfo('Monitored Navigation client has not started!!!')
 
+
+    def unblock_node(self, node_to_unblock):
+        nodes_to_append=[]
+        edges_to_append=[]
+        fmap = copy.deepcopy(self.lnodes)
+        for i in self.fnodes.nodes:
+            for j in i.edges:
+                if j.node == node_to_unblock:
+                    nodes_to_append.append(i.name)
+                    edges_to_append.append(j)
+                
+        for i in self.lnodes.nodes:
+            if i.name in nodes_to_append:
+                ind_to_append=nodes_to_append.index(i.name)
+                i.edges.append(edges_to_append[ind_to_append])
+
+        return fmap
 
     """
      Preempt CallBack

@@ -43,6 +43,15 @@ class map_manager(object):
         self.last_updated = rospy.Time.now()
         self.map_pub.publish(self.nodes)
 
+
+        # If we are using multirobot mode, publish free map topic
+        if self.multirobot_mode:
+            self.av_map_pub = rospy.Publisher('/available_topological_map', strands_navigation_msgs.msg.TopologicalMap, latch=True, queue_size=1)
+            self.unav_nodes_pub = rospy.Publisher('/unavailable_nodes', std_msgs.msg.String, latch=True, queue_size=1)
+            #self.last_updated = rospy.Time.now()
+            self.av_map_pub.publish(self.nodes)
+
+
         rospy.Subscriber('/update_map', std_msgs.msg.Time, self.updateCallback)
         #This service returns any given map
         self.get_map_srv=rospy.Service('/topological_map_publisher/get_topological_map', strands_navigation_msgs.srv.GetTopologicalMap, self.get_topological_map_cb)
@@ -129,7 +138,15 @@ class map_manager(object):
                     i.edges.pop(h)
 
         self.last_updated = rospy.Time.now()
-        self.map_pub.publish(tnodes)
+        self.av_map_pub.publish(tnodes)
+
+        topic_str=''        
+        for i in self.presence_data_node:
+            if i != 'none':
+                topic_str=topic_str+i+', '
+        
+        topic_str.rstrip(', ')
+        self.unav_nodes_pub.publish(topic_str)
 #        self.names = self.create_list_of_nodes()
 
 
