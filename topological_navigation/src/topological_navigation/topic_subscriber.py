@@ -39,7 +39,7 @@ class TopicSubscriberHelper(object):
                 if topic_type:
                     return topic_type, real_topic, msg_eval
                 else:
-                    rostopic._sleep(1.) # Change! Waiting for 10 seconds instead of 0.1 to reduce load
+                    rostopic._sleep(10.0) # Change! Waiting for 10 seconds instead of 0.1 to reduce load
         return None, None, None
 
     def __call__(self):

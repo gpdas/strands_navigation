@@ -52,20 +52,21 @@ DYNPARAM_MAPPING = {
     }
 
 
-"""
- Class for Topological Navigation 
-
-"""
 
 class TopologicalNavServer(object):
+    """
+     Class for Topological Navigation 
+    
+    """
     _feedback = topological_navigation.msg.GotoNodeFeedback()
     _result   = topological_navigation.msg.GotoNodeResult()
 
-    """
-     Initialization for Topological Navigation Class
-    
-    """
+
     def __init__(self, name, mode) :
+        """
+         Initialization for Topological Navigation Class
+        
+        """
         self.node_by_node = False
         self.cancelled = False
         self.preempted = False
@@ -152,6 +153,9 @@ class TopologicalNavServer(object):
             self.edge_groups = rospy.get_param('/edge_nav_config_groups',False)
 
 
+        if self.multirobot_mode:
+            rospy.loginfo("MULTI-ROBOT MODE!!!")
+
 
         rospy.loginfo("All Done ...")
         rospy.spin()
@@ -163,6 +167,7 @@ class TopologicalNavServer(object):
         rospy.loginfo("Creating Reconfigure Client")
         self.rcnfclient = dynamic_reconfigure.client.Client(self.move_base_planner)
         self.init_dynparams = self.rcnfclient.get_configuration()
+
 
     def reconf_movebase(self, cedg, cnode, intermediate):
 #        if cedg.top_vel <= 0.1:
@@ -263,8 +268,9 @@ class TopologicalNavServer(object):
             if self.multirobot_mode:
                 if goal.target in self.unavailable_nodes:
                     unav_map = self.unblock_node(goal.target)           
+                    self.lnodes=unav_map
             self.navigate(goal.target)
-            self.lnodes=unav_map
+
         else:
             rospy.loginfo('Monitored Navigation client has not started!!!')
 
@@ -279,7 +285,7 @@ class TopologicalNavServer(object):
                     nodes_to_append.append(i.name)
                     edges_to_append.append(j)
                 
-        for i in self.lnodes.nodes:
+        for i in fmap.nodes:
             if i.name in nodes_to_append:
                 ind_to_append=nodes_to_append.index(i.name)
                 i.edges.append(edges_to_append[ind_to_append])
@@ -298,11 +304,12 @@ class TopologicalNavServer(object):
         #self._as.set_preempted(self._result)
 
 
-    """
-     Closest Node CallBack
-     
-    """
+
     def closestNodeCallback(self, msg):
+        """
+         Closest Node CallBack
+         
+        """
         self.closest_node=msg.data
         if not self.monit_nav_cli :
             rospy.loginfo('Monitored Navigation client has not started!!!')

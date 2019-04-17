@@ -41,7 +41,6 @@ class map_manager(object):
 
         self.map_pub = rospy.Publisher('/topological_map', strands_navigation_msgs.msg.TopologicalMap, latch=True, queue_size=1)
         self.last_updated = rospy.Time.now()
-        print "P1"
         self.map_pub.publish(self.nodes)
 
 
@@ -118,15 +117,19 @@ class map_manager(object):
         '''
         callback for presence topics
         '''
+        rospy.loginfo("Node is blocked")
+        print "blip ", item
         data_ind=self.presence_data_topic.index(item)
-        self.presence_data_node[data_ind]=msg.data
-        self.block_occupied_nodes()
+        if self.presence_data_node[data_ind] != msg.data:
+            self.presence_data_node[data_ind]=msg.data
+            self.block_occupied_nodes()
 
 
     def block_occupied_nodes(self):
         '''
             This function removes the edges going into occupied nodes from the map and publishes a new map without them
         '''
+        print "Blocking: ", self.presence_data_node
         tnodes = copy.deepcopy(self.nodes)
         for i in tnodes.nodes:
             to_pop=[]
@@ -139,7 +142,6 @@ class map_manager(object):
                     i.edges.pop(h)
 
         #self.last_updated = rospy.Time.now()
-        print "R1"
         self.av_map_pub.publish(tnodes)
 
         topic_str=''        
