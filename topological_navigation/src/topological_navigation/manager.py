@@ -48,6 +48,7 @@ class map_manager(object):
         if self.multirobot_mode:
             self.av_map_pub = rospy.Publisher('/available_topological_map', strands_navigation_msgs.msg.TopologicalMap, latch=True, queue_size=1)
             self.unav_nodes_pub = rospy.Publisher('/unavailable_nodes', std_msgs.msg.String, latch=True, queue_size=1)
+            self.presence_info_pub = rospy.Publisher('/topological_presence_info', std_msgs.msg.String, latch=True, queue_size=1)
             #self.last_updated = rospy.Time.now()
             self.av_map_pub.publish(self.nodes)
 
@@ -130,6 +131,7 @@ class map_manager(object):
             This function removes the edges going into occupied nodes from the map and publishes a new map without them
         '''
         print "Blocking: ", self.presence_data_node
+        print "Owner: ", self.presence_data_topic
         tnodes = copy.deepcopy(self.nodes)
         for i in tnodes.nodes:
             to_pop=[]
@@ -144,13 +146,19 @@ class map_manager(object):
         #self.last_updated = rospy.Time.now()
         self.av_map_pub.publish(tnodes)
 
-        topic_str=''        
-        for i in self.presence_data_node:
-            if i != 'none':
-                topic_str=topic_str+i+', '
-        
-        topic_str.rstrip(', ')
+        topic_str=''
+        presence_str=''
+        for i in range(len(self.presence_data_node)):
+            if self.presence_data_node[i] != 'none':
+                topic_str=topic_str+self.presence_data_node[i]+', '
+                presence_str=presence_str+self.presence_data_topic[i]+'@'+self.presence_data_node[i]+', '
+        topic_str = topic_str.rstrip(', ')
+        presence_str = presence_str.rstrip(', ')
         self.unav_nodes_pub.publish(topic_str)
+        self.presence_info_pub.publish(presence_str)
+        
+#        presence_info_pub
+        
 #        self.names = self.create_list_of_nodes()
 
 

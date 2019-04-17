@@ -10,15 +10,14 @@ from geometry_msgs.msg import Point
 import topological_navigation.tmap_utils as tmap_utils
 
 
-class TopologicalVis(object):
+class TopologicalOccupVis(object):
     _pallete=[[1,1,1],[0,0,0],[1,0,0],[0,1,0],[0,0,1],[1,1,0],[1,0,1],[0,1,1]]  
-    def __init__(self, topic_name='/topological_map') :
-        self.actions=[]
-        self.map_markers = MarkerArray()
-        self.topmap_pub = rospy.Publisher('topological_map_visualisation', MarkerArray, queue_size = 1, latch=True)
+    def __init__(self) :
+        self.topmap_pub = rospy.Publisher('topological_presence', MarkerArray, queue_size = 1, latch=True)
         self._killall=False
         self.lnodes = None
-        #Waiting for Topological Map        
+        
+        #Waiting for Topological Map
         self.map_received=False
         rospy.Subscriber(topic_name, TopologicalMap, self.MapCallback)      
         rospy.loginfo("Waiting for Topological map ...")
@@ -26,7 +25,7 @@ class TopologicalVis(object):
         while not self.map_received and not self._killall :
             rospy.sleep(rospy.Duration.from_sec(0.5))
         rospy.loginfo(" ...done")
-        
+
         
         self.publish_markers()
         #rospy.loginfo("All Done ...")
