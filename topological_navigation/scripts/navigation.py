@@ -524,24 +524,27 @@ class TopologicalNavServer(object):
         while rindex < (len(route.edge_id)) and not self.cancelled and nav_ok :
             #current action
             cedg = get_edge_from_id(self.lnodes, route.source[rindex], route.edge_id[rindex])
-            if cedg is None:
-                if rindex == route_len - 1:
-                    self.lnodes = self.unblock_node(target)
-#                else:
-#                    # this will unblock intermediate nodes as well
-#                    self.lnodes = self.unblock_node(route.source[rindex+1])
+            if self.multirobot_mode:
+                if cedg is None:
+                    if rindex == route_len - 1:
+                        self.lnodes = self.unblock_node(target)
+#                    else:
+#                        # this will unblock intermediate nodes as well
+#                        self.lnodes = self.unblock_node(route.source[rindex+1])
             cedg = get_edge_from_id(self.lnodes, route.source[rindex], route.edge_id[rindex])
             a = cedg.action
             #next action
             if rindex < (route_len-1) :
                 edge = get_edge_from_id(self.lnodes, route.source[rindex+1], route.edge_id[rindex+1])
-                if edge is None:
-                    if rindex + 1 == route_len - 1:
-                        self.lnodes = self.unblock_node(target)
-#                    else:
-#                        # this will unblock intermediate nodes as well
-#                        self.lnodes = self.unblock_node(route.source[rindex+2])
-                edge = get_edge_from_id(self.lnodes, route.source[rindex+1], route.edge_id[rindex+1])
+                if self.multirobot_mode:
+                    if edge is None:
+                        if rindex + 1 == route_len - 1:
+                            self.lnodes = self.unblock_node(target)
+#                        else:
+#                            # this will unblock intermediate nodes as well
+#                            self.lnodes = self.unblock_node(route.source[rindex+2])
+                    edge = get_edge_from_id(self.lnodes, route.source[rindex+1], route.edge_id[rindex+1])
+
                 a1 = edge.action
             else :
                 a1 = 'none'
