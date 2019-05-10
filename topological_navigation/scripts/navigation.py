@@ -52,7 +52,6 @@ DYNPARAM_MAPPING = {
     }
 
 
-
 class TopologicalNavServer(object):
     """
      Class for Topological Navigation
@@ -114,6 +113,7 @@ class TopologicalNavServer(object):
             rospy.Subscriber('/available_topological_map', TopologicalMap, self.MapCallback)
             rospy.Subscriber('/topological_map', TopologicalMap, self.FullMapCallback)
             rospy.Subscriber('/unavailable_nodes', String, self.UnavNodesCB)
+
         rospy.loginfo("Waiting for Topological map ...")
         while not self._map_received :
             rospy.sleep(rospy.Duration.from_sec(0.05))
@@ -150,7 +150,7 @@ class TopologicalNavServer(object):
         if self.edge_reconfigure:
             self.current_edge_group='none'
             rospy.loginfo("Using edge reconfigure ...")
-            self.edge_groups = rospy.get_param('/edge_nav_config_groups',False)
+            self.edge_groups = rospy.get_param('/edge_nav_reconfig_groups', {})
 
 
         if self.multirobot_mode:
@@ -304,7 +304,6 @@ class TopologicalNavServer(object):
         #self._as.set_preempted(self._result)
 
 
-
     def closestNodeCallback(self, msg):
         """
          Closest Node CallBack
@@ -430,16 +429,15 @@ class TopologicalNavServer(object):
 
         Checks if an edge requires reconfiguration of the
         """
+
 #        print self.edge_groups
 
-        edge_group='none'
-        for i in self.edge_groups:
-            egn = i.keys()[0]
-            print "CHeck Edge: ", edge_id, "in ", egn
-            if edge_id in i[egn]:
-                edge_group = egn
+        edge_group = 'none'
+        for group in self.edge_groups:
+            print "Check Edge: ", edge_id, "in ", group
+            if edge_id in self.edge_groups[group]["edges"]:
+                edge_group = group
                 break
-
 
         print "current group: ", self.current_edge_group
         print "edge group: ", edge_group
@@ -454,6 +452,8 @@ class TopologicalNavServer(object):
                 self.current_edge_group = edge_group
 
                 print resp1.success
+                if resp1.success: # set current_edge_group only if successful
+                    self.current_edge_group = edge_group
             except rospy.ServiceException, e:
                 rospy.logerr("Service call failed: %s"%e)
                 self.current_edge_group = 'none'
